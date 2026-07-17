@@ -1,5 +1,4 @@
-
- <?php
+<?php
 use Cams\Auth;
 use Cams\Model;
 use Cams\Response;
