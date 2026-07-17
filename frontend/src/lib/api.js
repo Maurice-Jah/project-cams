@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 
-const BASE = '/api';
+const BASE = import.meta.env.VITE_API_BASE || '/api';
 const TOKEN_KEY = 'cams.token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -37,24 +37,48 @@ export const getMeQueryKey = () => ['auth', 'me'];
 export const getListUsersQueryKey = () => ['users'];
 
 export const useLogin = () =>
-  useMutation({ mutationFn: ({ email, password }) => req('POST', '/auth/login', { email, password }) });
+  useMutation({
+    mutationFn: ({ email, password }) =>
+      req('POST', '/auth/login', { email, password }),
+  });
 export const useMe = (opts) =>
-  useQuery({ queryKey: getMeQueryKey(), queryFn: () => req('GET', '/auth/me'), retry: false, ...opts?.query });
+  useQuery({
+    queryKey: getMeQueryKey(),
+    queryFn: () => req('GET', '/auth/me'),
+    retry: false,
+    ...opts?.query,
+  });
 export const useForgotPassword = () =>
-  useMutation({ mutationFn: ({ email }) => req('POST', '/auth/forgot-password', { email }) });
+  useMutation({
+    mutationFn: ({ email }) => req('POST', '/auth/forgot-password', { email }),
+  });
 export const useResetPassword = () =>
-  useMutation({ mutationFn: ({ token, password }) => req('POST', '/auth/reset-password', { token, password }) });
+  useMutation({
+    mutationFn: ({ token, password }) =>
+      req('POST', '/auth/reset-password', { token, password }),
+  });
 export const useChangePassword = () =>
-  useMutation({ mutationFn: ({ currentPassword, newPassword }) => req('POST', '/auth/change-password', { currentPassword, newPassword }) });
+  useMutation({
+    mutationFn: ({ currentPassword, newPassword }) =>
+      req('POST', '/auth/change-password', { currentPassword, newPassword }),
+  });
 export const useSendResetLink = () =>
-  useMutation({ mutationFn: ({ id }) => req('POST', '/users/' + id + '/send-reset-link') });
+  useMutation({
+    mutationFn: ({ id }) => req('POST', '/users/' + id + '/send-reset-link'),
+  });
 
 export const useListUsers = (opts) =>
-  useQuery({ queryKey: getListUsersQueryKey(), queryFn: () => req('GET', '/users'), ...opts?.query });
+  useQuery({
+    queryKey: getListUsersQueryKey(),
+    queryFn: () => req('GET', '/users'),
+    ...opts?.query,
+  });
 export const useCreateUser = () =>
   useMutation({ mutationFn: ({ data }) => req('POST', '/users', data) });
 export const useUpdateUser = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/users/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/users/' + id, data),
+  });
 export const useDeleteUser = () =>
   useMutation({ mutationFn: ({ id }) => req('DELETE', '/users/' + id) });
 
@@ -72,67 +96,137 @@ export const getListInvestigationsQueryKey = () => ['investigations'];
 export const getGetInvestigationQueryKey = (id) => ['investigations', id];
 
 export const useGetDashboardSummary = (opts) =>
-  useQuery({ queryKey: getGetDashboardSummaryQueryKey(), queryFn: () => req('GET', '/dashboard/summary'), ...opts?.query });
+  useQuery({
+    queryKey: getGetDashboardSummaryQueryKey(),
+    queryFn: () => req('GET', '/dashboard/summary'),
+    ...opts?.query,
+  });
 
 export const useListCases = (opts) => {
   const mine = opts?.assignedToMe ? '?assignedToMe=1' : '';
   return useQuery({
-    queryKey: opts?.assignedToMe ? [...getListCasesQueryKey(), 'mine'] : getListCasesQueryKey(),
+    queryKey: opts?.assignedToMe
+      ? [...getListCasesQueryKey(), 'mine']
+      : getListCasesQueryKey(),
     queryFn: () => req('GET', '/cases' + mine),
     ...opts?.query,
   });
 };
 export const useGetCase = (id, opts) =>
-  useQuery({ queryKey: getGetCaseQueryKey(id), queryFn: () => req('GET', '/cases/' + id), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getGetCaseQueryKey(id),
+    queryFn: () => req('GET', '/cases/' + id),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateCase = () =>
   useMutation({ mutationFn: ({ data }) => req('POST', '/cases', data) });
 export const useUpdateCase = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/cases/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/cases/' + id, data),
+  });
 export const useDeleteCase = () =>
   useMutation({ mutationFn: ({ id }) => req('DELETE', '/cases/' + id) });
 
 export const useListCaseNotes = (id, opts) =>
-  useQuery({ queryKey: getListCaseNotesQueryKey(id), queryFn: () => req('GET', '/cases/' + id + '/notes'), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getListCaseNotesQueryKey(id),
+    queryFn: () => req('GET', '/cases/' + id + '/notes'),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateCaseNote = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('POST', '/cases/' + id + '/notes', data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('POST', '/cases/' + id + '/notes', data),
+  });
 
 export const useListChildren = (opts) =>
-  useQuery({ queryKey: getListChildrenQueryKey(), queryFn: () => req('GET', '/children'), ...opts?.query });
+  useQuery({
+    queryKey: getListChildrenQueryKey(),
+    queryFn: () => req('GET', '/children'),
+    ...opts?.query,
+  });
 export const useGetChild = (id, opts) =>
-  useQuery({ queryKey: getGetChildQueryKey(id), queryFn: () => req('GET', '/children/' + id), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getGetChildQueryKey(id),
+    queryFn: () => req('GET', '/children/' + id),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateChild = () =>
   useMutation({ mutationFn: ({ data }) => req('POST', '/children', data) });
 export const useUpdateChild = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/children/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/children/' + id, data),
+  });
 
 export const useListWorkers = (opts) =>
-  useQuery({ queryKey: getListWorkersQueryKey(), queryFn: () => req('GET', '/workers'), ...opts?.query });
+  useQuery({
+    queryKey: getListWorkersQueryKey(),
+    queryFn: () => req('GET', '/workers'),
+    ...opts?.query,
+  });
 // Resolves the current login's linked staff-directory record (or null if
 // this account isn't linked to one yet). Powers "my cases" everywhere.
 export const getMyWorkerQueryKey = () => ['workers', 'me'];
 export const useGetMyWorker = (opts) =>
-  useQuery({ queryKey: getMyWorkerQueryKey(), queryFn: () => req('GET', '/workers/me'), ...opts?.query });
+  useQuery({
+    queryKey: getMyWorkerQueryKey(),
+    queryFn: () => req('GET', '/workers/me'),
+    ...opts?.query,
+  });
 export const useGetWorker = (id, opts) =>
-  useQuery({ queryKey: getGetWorkerQueryKey(id), queryFn: () => req('GET', '/workers/' + id), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getGetWorkerQueryKey(id),
+    queryFn: () => req('GET', '/workers/' + id),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateWorker = () =>
   useMutation({ mutationFn: ({ data }) => req('POST', '/workers', data) });
 export const useUpdateWorker = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/workers/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/workers/' + id, data),
+  });
 
 export const useListReports = (opts) =>
-  useQuery({ queryKey: getListReportsQueryKey(), queryFn: () => req('GET', '/reports'), ...opts?.query });
+  useQuery({
+    queryKey: getListReportsQueryKey(),
+    queryFn: () => req('GET', '/reports'),
+    ...opts?.query,
+  });
 export const useGetReport = (id, opts) =>
-  useQuery({ queryKey: getGetReportQueryKey(id), queryFn: () => req('GET', '/reports/' + id), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getGetReportQueryKey(id),
+    queryFn: () => req('GET', '/reports/' + id),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateReport = () =>
   useMutation({ mutationFn: ({ data }) => req('POST', '/reports', data) });
 export const useUpdateReport = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/reports/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/reports/' + id, data),
+  });
 
 export const useListInvestigations = (opts) =>
-  useQuery({ queryKey: getListInvestigationsQueryKey(), queryFn: () => req('GET', '/investigations'), ...opts?.query });
+  useQuery({
+    queryKey: getListInvestigationsQueryKey(),
+    queryFn: () => req('GET', '/investigations'),
+    ...opts?.query,
+  });
 export const useGetInvestigation = (id, opts) =>
-  useQuery({ queryKey: getGetInvestigationQueryKey(id), queryFn: () => req('GET', '/investigations/' + id), enabled: !!id, ...opts?.query });
+  useQuery({
+    queryKey: getGetInvestigationQueryKey(id),
+    queryFn: () => req('GET', '/investigations/' + id),
+    enabled: !!id,
+    ...opts?.query,
+  });
 export const useCreateInvestigation = () =>
-  useMutation({ mutationFn: ({ data }) => req('POST', '/investigations', data) });
+  useMutation({
+    mutationFn: ({ data }) => req('POST', '/investigations', data),
+  });
 export const useUpdateInvestigation = () =>
-  useMutation({ mutationFn: ({ id, data }) => req('PATCH', '/investigations/' + id, data) });
+  useMutation({
+    mutationFn: ({ id, data }) => req('PATCH', '/investigations/' + id, data),
+  });
