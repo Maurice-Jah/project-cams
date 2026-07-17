@@ -1,0 +1,25 @@
+# Logs and databases
+*.log
+*.sqlite
+
+# Environment variables and secrets
+.env
+.env.local
+credentials.json
+
+# Dependencies (Example for Node.js)
+node_modules/
+
+# Build outputs
+dist/
+build/
+bin/
+obj/
+
+# IDE / Editor specific folders
+.vscode/
+.DS_Store
+
+
+# Ignore OS-specific system files
+Thumbs.db

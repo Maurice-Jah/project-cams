@@ -1,0 +1,26 @@
+// import { cn } from '@/lib/utils';
+// export function Textarea({ className, ...props }) {
+//   return <textarea className={cn('flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50', className)} {...props} />;
+// }
+
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+// Wrap the component in forwardRef
+const Textarea = React.forwardRef(({ className, ...props }, ref) => {
+  return (
+    <textarea
+      ref={ref} // <--- This passes the ref down to the native HTML textarea element
+      className={cn(
+        'flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    />
+  );
+});
+
+// Set the display name for easy React DevTools tracking
+Textarea.displayName = 'Textarea';
+
+export { Textarea };
