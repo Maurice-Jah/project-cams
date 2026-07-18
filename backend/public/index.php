@@ -1,5 +1,6 @@
 <?php
 
+require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../src/Env.php';
 require __DIR__ . '/../src/Database.php';
 require __DIR__ . '/../src/Response.php';

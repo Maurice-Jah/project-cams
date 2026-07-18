@@ -2,23 +2,18 @@
 
 namespace Cams;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
 /**
- * A deliberately small mail helper — this project doesn't need a full mail
- * library (PHPMailer/Symfony Mailer) for what it does: sending short
- * transactional password-reset emails.
+ * Sends transactional emails (currently just password resets) via SMTP.
  *
- * Two modes, controlled by MAIL_ENABLED in .env:
- *  - true:  attempts to send via PHP's built-in mail() function. This only
- *           works if the server has a configured MTA (sendmail/Postfix/an
- *           SMTP relay wired to sendmail) — fine for a real deployment,
- *           usually NOT present on a local dev machine.
- *  - false (default): writes the email to backend/storage/outbox/ as a
- *           plain text file instead of actually sending it. This mirrors
- *           how mainstream frameworks handle local development (e.g.
- *           Laravel's "log" mail driver) — it lets the whole reset flow be
- *           exercised and demoed end-to-end without needing a real mail
- *           server, while keeping the exact same code path for production
- *           (just flip MAIL_ENABLED and set up an MTA).
+ * Modes, controlled by MAIL_ENABLED in .env / environment variables:
+ *  - true:  sends via real SMTP using PHPMailer, configured through
+ *           SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE, MAIL_FROM.
+ *  - false (default), or if SMTP sending throws: falls back to writing the
+ *           email to backend/storage/outbox/ as a plain text file, so the
+ *           flow can still be exercised locally without any mail setup.
  */
 class Mailer
 {
@@ -27,16 +22,40 @@ class Mailer
         $enabled = strtolower((string) getenv('MAIL_ENABLED')) === 'true';
 
         if ($enabled) {
-            $from = getenv('MAIL_FROM') ?: 'no-reply@cams.local';
-            $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8";
-            // mail() returns false on failure (e.g. no MTA configured) —
-            // fall through to the file log either way so nothing is lost.
-            if (@mail($to, $subject, $body, $headers)) {
+            try {
+                self::sendSmtp($to, $subject, $body);
                 return;
+            } catch (\Throwable $e) {
+                // Fall through to the file log so nothing is silently lost —
+                // but still surface the real reason in the server logs.
+                error_log('Mailer: SMTP send failed, falling back to file log: ' . $e->getMessage());
             }
         }
 
         self::logToFile($to, $subject, $body);
+    }
+
+    private static function sendSmtp(string $to, string $subject, string $body): void
+    {
+        $mail = new PHPMailer(true);
+
+        $mail->isSMTP();
+        $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = getenv('SMTP_USER') ?: '';
+        $mail->Password   = getenv('SMTP_PASS') ?: '';
+        $mail->SMTPSecure = getenv('SMTP_SECURE') ?: PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = (int) (getenv('SMTP_PORT') ?: 587);
+
+        $from = getenv('MAIL_FROM') ?: $mail->Username;
+        $mail->setFrom($from, 'CAMS');
+        $mail->addAddress($to);
+
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+        $mail->isHTML(false);
+
+        $mail->send();
     }
 
     private static function logToFile(string $to, string $subject, string $body): void
