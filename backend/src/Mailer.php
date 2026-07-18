@@ -2,18 +2,21 @@
 
 namespace Cams;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as PHPMailerException;
-
 /**
- * Sends transactional emails (currently just password resets) via SMTP.
+ * Sends transactional emails (currently just password resets) via the
+ * Resend HTTPS API (https://resend.com) rather than raw SMTP.
+ *
+ * Why HTTPS and not SMTP: many free hosting tiers (including Render's free
+ * web services) block outbound traffic on SMTP ports 25/465/587 entirely to
+ * prevent spam abuse. A plain HTTPS POST request on port 443 is never
+ * blocked, since it's indistinguishable from any other API call the app
+ * already makes.
  *
  * Modes, controlled by MAIL_ENABLED in .env / environment variables:
- *  - true:  sends via real SMTP using PHPMailer, configured through
- *           SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE, MAIL_FROM.
- *  - false (default), or if SMTP sending throws: falls back to writing the
+ *  - true:  sends via Resend's API, using RESEND_API_KEY and MAIL_FROM.
+ *  - false (default), or if the API call fails: falls back to writing the
  *           email to backend/storage/outbox/ as a plain text file, so the
- *           flow can still be exercised locally without any mail setup.
+ *           flow can still be exercised locally without any setup.
  */
 class Mailer
 {
@@ -23,39 +26,54 @@ class Mailer
 
         if ($enabled) {
             try {
-                self::sendSmtp($to, $subject, $body);
+                self::sendViaResend($to, $subject, $body);
                 return;
             } catch (\Throwable $e) {
-                // Fall through to the file log so nothing is silently lost —
-                // but still surface the real reason in the server logs.
-                error_log('Mailer: SMTP send failed, falling back to file log: ' . $e->getMessage());
+                error_log('Mailer: Resend send failed, falling back to file log: ' . $e->getMessage());
             }
         }
 
         self::logToFile($to, $subject, $body);
     }
 
-    private static function sendSmtp(string $to, string $subject, string $body): void
+    private static function sendViaResend(string $to, string $subject, string $body): void
     {
-        $mail = new PHPMailer(true);
+        $apiKey = getenv('RESEND_API_KEY') ?: '';
+        if ($apiKey === '') {
+            throw new \RuntimeException('RESEND_API_KEY is not set');
+        }
+        $from = getenv('MAIL_FROM') ?: 'CAMS <onboarding@resend.dev>';
 
-        $mail->isSMTP();
-        $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = getenv('SMTP_USER') ?: '';
-        $mail->Password   = getenv('SMTP_PASS') ?: '';
-        $mail->SMTPSecure = getenv('SMTP_SECURE') ?: PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = (int) (getenv('SMTP_PORT') ?: 587);
+        $payload = json_encode([
+            'from'    => $from,
+            'to'      => [$to],
+            'subject' => $subject,
+            'text'    => $body,
+        ]);
 
-        $from = getenv('MAIL_FROM') ?: $mail->Username;
-        $mail->setFrom($from, 'CAMS');
-        $mail->addAddress($to);
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 10, // never let one email hang the whole server
+        ]);
 
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
-        $mail->isHTML(false);
+        $response = curl_exec($ch);
+        $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error    = curl_error($ch);
+        curl_close($ch);
 
-        $mail->send();
+        if ($response === false) {
+            throw new \RuntimeException('Resend request failed: ' . $error);
+        }
+        if ($status < 200 || $status >= 300) {
+            throw new \RuntimeException("Resend API returned HTTP {$status}: {$response}");
+        }
     }
 
     private static function logToFile(string $to, string $subject, string $body): void
